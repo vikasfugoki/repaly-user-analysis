@@ -605,25 +605,56 @@ def plot_post_comment_table(
 # ── app UI ─────────────────────────────────────────────────────────────────────
 
 st.title("📊 Repaly Analytics")
-account_id = st.text_input("Enter Account ID", placeholder="e.g. 25398043726462840")
+username = st.text_input("Enter instagram username", placeholder="e.g. vikastempaccount")
 
-if account_id:
+if username:
     with st.spinner("Loading data…"):
-        media_analytics = get_items_by_sk(instagram_media_analytics_table, "accountId", account_id)
-        media_details   = get_items_by_sk(instagram_media_table,           "accountId", account_id)
-        account_details = get_item_by_pk(instagram_account_table, "id", account_id) or {}
+        accounts = get_items_by_sk(instagram_account_table, "username", username)
 
-    if not media_analytics:
-        st.warning("No data found for this account ID.")
+    if not accounts:
+        st.warning(f"No account found for username **{username}**")
     else:
-        category_total = get_category_totals(media_analytics)
-        plot_category_data(category_total)
+        account_details = accounts[0]
+        account_id      = account_details.get("id")
 
-        df = get_post_comment_totals(media_analytics, media_details)
-        plot_post_comment_table(
-            df,
-            media_analytics,
-            get_per_media_analytics,
-            account_details.get("tag_and_value_pair"),
-            account_details.get("ai_enabled"),
-        )
+        with st.spinner("Loading analytics…"):
+            media_analytics = get_items_by_sk(instagram_media_analytics_table, "accountId", account_id)
+            media_details   = get_items_by_sk(instagram_media_table,           "accountId", account_id)
+
+        if not media_analytics:
+            st.warning(f"No analytics data found for **{username}**")
+        else:
+            category_total = get_category_totals(media_analytics)
+            plot_category_data(category_total)
+
+            df = get_post_comment_totals(media_analytics, media_details)
+            plot_post_comment_table(
+                df,
+                media_analytics,
+                get_per_media_analytics,
+                account_details.get("tag_and_value_pair"),
+                account_details.get("ai_enabled"),
+            )
+
+# if username:
+#     with st.spinner("Loading data…"):
+#         account_details = get_items_by_sk(instagram_account_table, "username", username)[0] ## will only return one entry
+#         account_id = account_details.get("id")
+#         media_analytics = get_items_by_sk(instagram_media_analytics_table, "accountId", account_id)
+#         media_details   = get_items_by_sk(instagram_media_table,           "accountId", account_id)
+#         # account_details = get_item_by_pk(instagram_account_table, "id", account_id) or {}
+
+#     if not media_analytics:
+#         st.warning("No data found for this account ID.")
+#     else:
+#         category_total = get_category_totals(media_analytics)
+#         plot_category_data(category_total)
+
+#         df = get_post_comment_totals(media_analytics, media_details)
+#         plot_post_comment_table(
+#             df,
+#             media_analytics,
+#             get_per_media_analytics,
+#             account_details.get("tag_and_value_pair"),
+#             account_details.get("ai_enabled"),
+#         )
