@@ -602,59 +602,126 @@ def plot_post_comment_table(
         else:
             _show_modal(detail, tvp, ai)
 
+# ── section renderers ──────────────────────────────────────────────────────────
+
+def _render_comment_analysis(account_id: str, account_details: dict) -> None:
+    with st.spinner("Loading analytics…"):
+        media_analytics = get_items_by_sk(instagram_media_analytics_table, "accountId", account_id)
+        media_details   = get_items_by_sk(instagram_media_table,           "accountId", account_id)
+
+    if not media_analytics:
+        st.warning("No analytics data found for this account.")
+        return
+
+    category_total = get_category_totals(media_analytics)
+    plot_category_data(category_total)
+
+    df = get_post_comment_totals(media_analytics, media_details)
+    plot_post_comment_table(
+        df,
+        media_analytics,
+        get_per_media_analytics,
+        account_details.get("tag_and_value_pair"),
+        account_details.get("ai_enabled"),
+    )
+
+
+def _render_dm_analysis() -> None:
+    st.markdown("<br>", unsafe_allow_html=True)
+    components.html("""
+<div style="
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:64px 32px;text-align:center;
+  font-family:'DM Sans',sans-serif;
+">
+  <div style="font-size:3.5rem;margin-bottom:16px">💬</div>
+  <div style="
+    font-size:1.6rem;font-weight:700;color:#1a1a2e;margin-bottom:10px;
+    letter-spacing:-0.02em;
+  ">DM Analysis — Coming Soon</div>
+  <div style="
+    font-size:1rem;color:#6c757d;max-width:420px;line-height:1.6;
+  ">
+    We're building deep insights into your Instagram DM conversations —
+    response rates, automation performance, and conversion tracking.
+    Stay tuned!
+  </div>
+  <div style="
+    margin-top:32px;padding:10px 24px;border-radius:20px;
+    background:#4361ee18;border:1px solid #4361ee55;
+    color:#4361ee;font-size:0.88rem;font-weight:600;
+  ">🚧 In development</div>
+</div>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+""", height=320)
+
 # ── app UI ─────────────────────────────────────────────────────────────────────
 
 st.title("📊 Repaly Analytics")
-username = st.text_input("Enter instagram username", placeholder="e.g. vikastempaccount")
+
+# ── Step 1: username input ─────────────────────────────────────────────────────
+username = st.text_input(
+    "Enter Instagram username",
+    placeholder="e.g. vikastempaccount",
+    value=st.session_state.get("current_username", ""),
+    key="username_input",
+)
+
+# Reset section selection when username changes
+if username != st.session_state.get("current_username", ""):
+    st.session_state.current_username = username
+    st.session_state.selected_section = None
+    st.session_state.account_loaded   = False
 
 if username:
-    with st.spinner("Loading data…"):
-        accounts = get_items_by_sk(instagram_account_table, "username", username)
+    # ── Step 2: load account once ──────────────────────────────────────────────
+    if not st.session_state.get("account_loaded"):
+        with st.spinner("Looking up account…"):
+            accounts = get_items_by_sk(instagram_account_table, "username", username)
+        if not accounts:
+            st.warning(f"No account found for username **{username}**")
+            st.stop()
+        st.session_state.account_details = accounts[0]
+        st.session_state.account_loaded  = True
 
-    if not accounts:
-        st.warning(f"No account found for username **{username}**")
-    else:
-        account_details = accounts[0]
-        account_id      = account_details.get("id")
+    account_details = st.session_state.account_details
+    account_id      = account_details.get("id")
 
-        with st.spinner("Loading analytics…"):
-            media_analytics = get_items_by_sk(instagram_media_analytics_table, "accountId", account_id)
-            media_details   = get_items_by_sk(instagram_media_table,           "accountId", account_id)
+    # ── Step 3: section selector ───────────────────────────────────────────────
+    st.markdown("---")
+    st.markdown(f"#### What would you like to analyse for **@{username}**?")
 
-        if not media_analytics:
-            st.warning(f"No analytics data found for **{username}**")
-        else:
-            category_total = get_category_totals(media_analytics)
-            plot_category_data(category_total)
+    col_a, col_b, col_spacer = st.columns([2, 2, 4])
 
-            df = get_post_comment_totals(media_analytics, media_details)
-            plot_post_comment_table(
-                df,
-                media_analytics,
-                get_per_media_analytics,
-                account_details.get("tag_and_value_pair"),
-                account_details.get("ai_enabled"),
-            )
+    with col_a:
+        comment_clicked = st.button(
+            "💬 Comment Analysis",
+            use_container_width=True,
+            type="primary" if st.session_state.get("selected_section") == "comments" else "secondary",
+            key="btn_comments",
+        )
+    with col_b:
+        dm_clicked = st.button(
+            "📩 DM Analysis",
+            use_container_width=True,
+            type="primary" if st.session_state.get("selected_section") == "dms" else "secondary",
+            key="btn_dms",
+        )
 
-# if username:
-#     with st.spinner("Loading data…"):
-#         account_details = get_items_by_sk(instagram_account_table, "username", username)[0] ## will only return one entry
-#         account_id = account_details.get("id")
-#         media_analytics = get_items_by_sk(instagram_media_analytics_table, "accountId", account_id)
-#         media_details   = get_items_by_sk(instagram_media_table,           "accountId", account_id)
-#         # account_details = get_item_by_pk(instagram_account_table, "id", account_id) or {}
+    if comment_clicked:
+        st.session_state.selected_section = "comments"
+    if dm_clicked:
+        st.session_state.selected_section = "dms"
 
-#     if not media_analytics:
-#         st.warning("No data found for this account ID.")
-#     else:
-#         category_total = get_category_totals(media_analytics)
-#         plot_category_data(category_total)
+    # ── Step 4: render selected section ───────────────────────────────────────
+    section = st.session_state.get("selected_section")
 
-#         df = get_post_comment_totals(media_analytics, media_details)
-#         plot_post_comment_table(
-#             df,
-#             media_analytics,
-#             get_per_media_analytics,
-#             account_details.get("tag_and_value_pair"),
-#             account_details.get("ai_enabled"),
-#         )
+    if section == "comments":
+        st.markdown("---")
+        st.markdown(f"### 💬 Comment Analysis — @{username}")
+        _render_comment_analysis(account_id, account_details)
+
+    elif section == "dms":
+        st.markdown("---")
+        st.markdown(f"### 📩 DM Analysis — @{username}")
+        _render_dm_analysis()
