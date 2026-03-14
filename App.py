@@ -205,6 +205,50 @@ def _show_modal(post_detail: dict, tag_and_value_pair: list = None, ai_enabled: 
     st.markdown(f"**Post ID:** `{post_id}`")
     st.divider()
 
+    if ai_enabled:
+        st.divider()
+        st.markdown("##### ⚙️ AI automation config")
+        ai = _dec_to_native(ai_enabled)
+        SECTION_ICONS = {"negative_comments": "🚫", "positive_comments": "✅",
+                         "inquiries": "💬", "potential_buyers": "🛒"}
+        cols = st.columns(len(ai))
+        for col, (section_key, cfg) in zip(cols, ai.items()):
+            icon  = SECTION_ICONS.get(section_key, "•")
+            label = section_key.replace("_", " ").title()
+            mode  = cfg.get("mode", "—")
+            with col:
+                st.markdown(
+                    f'<div style="border:1px solid #dee2e6;border-radius:8px;padding:10px 12px;">'
+                    f'<div style="font-size:0.75rem;color:#6c757d;margin-bottom:2px">{icon} {label}</div>'
+                    f'<div style="font-weight:700;font-size:0.9rem">{mode}</div>',
+                    unsafe_allow_html=True,
+                )
+                for k, v in cfg.items():
+                    if k != "mode" and v not in ("", None, {}, []):
+                        st.caption(f"{k}: `{v}`")
+                st.markdown("</div>", unsafe_allow_html=True)
+
+    if tag_and_value_pair:
+        st.divider()
+        st.markdown("##### 🏷️ Tag & value pairs")
+        for i, pair in enumerate(_dec_to_native(tag_and_value_pair)):
+            with st.expander(f"Rule {i+1} — tags: {pair.get('tags', []) or 'none'}", expanded=i == 0):
+                l, r = st.columns(2)
+                l.markdown(f"**Mode active:** `{pair.get('mode', '—')}`")
+                l.markdown(f"**Require follow:** `{pair.get('requireFollow', '—')}`")
+                l.markdown(f"**Send permalink:** `{pair.get('sendPermaLink', '—')}`")
+                if pair.get("permaLink"):
+                    l.markdown(f"**Permalink:** [{pair['permaLink']}]({pair['permaLink']})")
+                tags = pair.get("tags") or []
+                if tags:
+                    r.markdown(" ".join(
+                        f'<span style="display:inline-block;margin:2px;padding:2px 8px;border-radius:12px;'
+                        f'background:#4361ee22;border:1px solid #4361ee;color:#4361ee;font-size:0.78rem">{t}</span>'
+                        for t in tags), unsafe_allow_html=True)
+                if pair.get("responseDM"):        r.markdown(f"**DM response:** {pair['responseDM']}")
+                if pair.get("responseComment"):   r.markdown(f"**Comment response:** {pair['responseComment']}")
+                if pair.get("followPromptMessage"): r.markdown(f"**Follow prompt:** {pair['followPromptMessage']}")
+
     # 1 ── count badges
     st.markdown("##### Comment counts")
     badges = ""
@@ -290,50 +334,6 @@ def _show_modal(post_detail: dict, tag_and_value_pair: list = None, ai_enabled: 
         )
     else:
         st.caption("No individual comments found.")
-
-    if ai_enabled:
-        st.divider()
-        st.markdown("##### ⚙️ AI automation config")
-        ai = _dec_to_native(ai_enabled)
-        SECTION_ICONS = {"negative_comments": "🚫", "positive_comments": "✅",
-                         "inquiries": "💬", "potential_buyers": "🛒"}
-        cols = st.columns(len(ai))
-        for col, (section_key, cfg) in zip(cols, ai.items()):
-            icon  = SECTION_ICONS.get(section_key, "•")
-            label = section_key.replace("_", " ").title()
-            mode  = cfg.get("mode", "—")
-            with col:
-                st.markdown(
-                    f'<div style="border:1px solid #dee2e6;border-radius:8px;padding:10px 12px;">'
-                    f'<div style="font-size:0.75rem;color:#6c757d;margin-bottom:2px">{icon} {label}</div>'
-                    f'<div style="font-weight:700;font-size:0.9rem">{mode}</div>',
-                    unsafe_allow_html=True,
-                )
-                for k, v in cfg.items():
-                    if k != "mode" and v not in ("", None, {}, []):
-                        st.caption(f"{k}: `{v}`")
-                st.markdown("</div>", unsafe_allow_html=True)
-
-    if tag_and_value_pair:
-        st.divider()
-        st.markdown("##### 🏷️ Tag & value pairs")
-        for i, pair in enumerate(_dec_to_native(tag_and_value_pair)):
-            with st.expander(f"Rule {i+1} — tags: {pair.get('tags', []) or 'none'}", expanded=i == 0):
-                l, r = st.columns(2)
-                l.markdown(f"**Mode active:** `{pair.get('mode', '—')}`")
-                l.markdown(f"**Require follow:** `{pair.get('requireFollow', '—')}`")
-                l.markdown(f"**Send permalink:** `{pair.get('sendPermaLink', '—')}`")
-                if pair.get("permaLink"):
-                    l.markdown(f"**Permalink:** [{pair['permaLink']}]({pair['permaLink']})")
-                tags = pair.get("tags") or []
-                if tags:
-                    r.markdown(" ".join(
-                        f'<span style="display:inline-block;margin:2px;padding:2px 8px;border-radius:12px;'
-                        f'background:#4361ee22;border:1px solid #4361ee;color:#4361ee;font-size:0.78rem">{t}</span>'
-                        for t in tags), unsafe_allow_html=True)
-                if pair.get("responseDM"):        r.markdown(f"**DM response:** {pair['responseDM']}")
-                if pair.get("responseComment"):   r.markdown(f"**Comment response:** {pair['responseComment']}")
-                if pair.get("followPromptMessage"): r.markdown(f"**Follow prompt:** {pair['followPromptMessage']}")
 
 # ── account-level helpers ──────────────────────────────────────────────────────
 
