@@ -6,6 +6,8 @@ from boto3.dynamodb.conditions import Attr
 import plotly.express as px
 from decimal import Decimal
 import streamlit.components.v1 as components
+from dm_analysis.dm_section import render_dm_analysis
+from flow_analytics import render_flow_analytics
 
 st.set_page_config(
     page_title="Repaly Analytics",
@@ -626,34 +628,34 @@ def _render_comment_analysis(account_id: str, account_details: dict) -> None:
     )
 
 
-def _render_dm_analysis() -> None:
-    st.markdown("<br>", unsafe_allow_html=True)
-    components.html("""
-<div style="
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:64px 32px;text-align:center;
-  font-family:'DM Sans',sans-serif;
-">
-  <div style="font-size:3.5rem;margin-bottom:16px">💬</div>
-  <div style="
-    font-size:1.6rem;font-weight:700;color:#1a1a2e;margin-bottom:10px;
-    letter-spacing:-0.02em;
-  ">DM Analysis — Coming Soon</div>
-  <div style="
-    font-size:1rem;color:#6c757d;max-width:420px;line-height:1.6;
-  ">
-    We're building deep insights into your Instagram DM conversations —
-    response rates, automation performance, and conversion tracking.
-    Stay tuned!
-  </div>
-  <div style="
-    margin-top:32px;padding:10px 24px;border-radius:20px;
-    background:#4361ee18;border:1px solid #4361ee55;
-    color:#4361ee;font-size:0.88rem;font-weight:600;
-  ">🚧 In development</div>
-</div>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-""", height=320)
+# def _render_dm_analysis() -> None:
+#     st.markdown("<br>", unsafe_allow_html=True)
+#     components.html("""
+# <div style="
+#   display:flex;flex-direction:column;align-items:center;justify-content:center;
+#   padding:64px 32px;text-align:center;
+#   font-family:'DM Sans',sans-serif;
+# ">
+#   <div style="font-size:3.5rem;margin-bottom:16px">💬</div>
+#   <div style="
+#     font-size:1.6rem;font-weight:700;color:#1a1a2e;margin-bottom:10px;
+#     letter-spacing:-0.02em;
+#   ">DM Analysis — Coming Soon</div>
+#   <div style="
+#     font-size:1rem;color:#6c757d;max-width:420px;line-height:1.6;
+#   ">
+#     We're building deep insights into your Instagram DM conversations —
+#     response rates, automation performance, and conversion tracking.
+#     Stay tuned!
+#   </div>
+#   <div style="
+#     margin-top:32px;padding:10px 24px;border-radius:20px;
+#     background:#4361ee18;border:1px solid #4361ee55;
+#     color:#4361ee;font-size:0.88rem;font-weight:600;
+#   ">🚧 In development</div>
+# </div>
+# <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+# """, height=320)
 
 # ── app UI ─────────────────────────────────────────────────────────────────────
 
@@ -691,7 +693,7 @@ if username:
     st.markdown("---")
     st.markdown(f"#### What would you like to analyse for **@{username}**?")
 
-    col_a, col_b, col_spacer = st.columns([2, 2, 4])
+    col_a, col_b, col_c, col_spacer = st.columns([2, 2, 2, 2])
 
     with col_a:
         comment_clicked = st.button(
@@ -708,10 +710,20 @@ if username:
             key="btn_dms",
         )
 
+    with col_c:
+        flow_clicked = st.button(
+            "🔀 DM Flow Analytics",
+            use_container_width=True,
+            type="primary" if st.session_state.get("selected_section") == "flows" else "secondary",
+            key="btn_flows",
+        )
+
     if comment_clicked:
         st.session_state.selected_section = "comments"
     if dm_clicked:
-        st.session_state.selected_section = "dms"
+        st.session_state.selected_section = "dms"  
+    if flow_clicked:
+        st.session_state.selected_section = "flows"
 
     # ── Step 4: render selected section ───────────────────────────────────────
     section = st.session_state.get("selected_section")
@@ -724,4 +736,16 @@ if username:
     elif section == "dms":
         st.markdown("---")
         st.markdown(f"### 📩 DM Analysis — @{username}")
-        _render_dm_analysis()
+        # _render_dm_analysis(account_id, account_details.get("pro_user_id"), dynamodb_connection=dynamodb)
+        biz_id = account_details.get("pro_user_id") or account_id
+        render_dm_analysis(biz_id, dynamodb, account_id=account_id)
+
+    # elif section == "flows":
+    #     st.markdown("---")
+    #     st.markdown(f"### 🔀 DM Flow Analytics — @{username}")
+    #     render_flow_analytics(account_id, dynamodb)
+
+    elif section == "flows":
+        st.markdown("---")
+        st.markdown(f"### 🔀 DM Flow Analytics — @{username}")
+        render_flow_analytics(account_details.get("id"), dynamodb)
